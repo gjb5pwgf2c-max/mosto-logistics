@@ -1,0 +1,20 @@
+{
+  "name": "gerhaul-website",
+  "version": "1.0.0",
+  "description": "GerhaulDriver - Your Truck. Your Rules. Your Earnings.",
+  "main": "index.html",
+  "scripts": {
+    "dev": "python3 -m http.server 3000",
+    "build": "echo 'No build needed for static site'",
+    "start": "python3 -m http.server 3000"
+  },
+  "keywords": [
+    "trucking",
+    "dispatch",
+    "fleet-management",
+    "gps-tracking",
+    "hos-compliance"
+  ],
+  "author": "Gerhaul Inc",
+  "license": "MIT"
+}
