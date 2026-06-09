@@ -822,52 +822,7 @@
             el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
             observer.observe(el);
         });
-        // ========== MOSTODISPATCH BACKEND CONNECTION TEST ==========
-const BACKEND_URL = 'https://mostodispatch-production.up.railway.app';
-
-async function loadDriversData() {
-    try {
-        const response = await fetch(`${BACKEND_URL}/api/drivers`);
-        const data = await response.json();
-        return data.drivers;
-    } catch (error) {
-        return { error: error.message };
-    }
-}
-
-async function loadLoadsData() {
-    try {
-        const response = await fetch(`${BACKEND_URL}/api/loads`);
-        const data = await response.json();
-        return data.loads;
-    } catch (error) {
-        return { error: error.message };
-    }
-}
-
-// Test on page load
-window.addEventListener('load', async function() {
-    const drivers = await loadDriversData();
-    const loads = await loadLoadsData();
-    
-    // Create visible test box
-    const testBox = document.createElement('div');
-    testBox.style.cssText = 'position: fixed; top: 100px; right: 10px; width: 300px; background: #ff6b35; color: white; padding: 15px; border-radius: 8px; z-index: 9999; font-size: 12px; font-weight: bold; white-space: pre-wrap;';
-    testBox.innerHTML = `
-🚀 BACKEND TEST RESULTS 🚀
-
-Drivers: ${JSON.stringify(drivers).substring(0, 100)}...
-
-Loads: ${JSON.stringify(loads).substring(0, 100)}...
-
-✅ If you see data here, backend is CONNECTED!
-    `;
-    document.body.appendChild(testBox);
-    
-    // Also show alert
-    alert('Backend test complete! Check the orange box in top-right corner for results.');
-});
-// ========== END TEST ==========
+        
     </script>
 </body>
 </html>
