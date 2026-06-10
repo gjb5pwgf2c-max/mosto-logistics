@@ -1,20 +1,513 @@
-{
-  "version": 2,
-  "name": "mosto-logistics",
-  "builds": [
-    {
-      "src": "*.html",
-      "use": "@vercel/static"
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MostoDispatch — Fleet Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #0f1419;
+      --bg2:       #0a0e13;
+      --surface:   #1a1f2e;
+      --surface2:  #242d3d;
+      --border:    #2a3142;
+      --text:      #ffffff;
+      --muted:     #7a8499;
+      --orange:    #ff6b35;
+      --orange2:   #ff8a50;
+      --green:     #10b981;
+      --blue:      #3b82f6;
+      --red:       #ef4444;
+      --yellow:    #f59e0b;
     }
-  ],
-  "routes": [
-    {
-      "src": "/dashboard",
-      "dest": "/dashboard.html"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
     }
-  ]
-}
+
+    /* ── TOP BAR ── */
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(10,14,19,0.97);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 1.25rem; height: 56px;
+    }
+    .topbar-logo { font-size: 1.1rem; font-weight: 800; letter-spacing: -0.5px; }
+    .topbar-logo span { color: var(--orange); }
+    .topbar-right { display: flex; align-items: center; gap: 0.75rem; }
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--green);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    .status-label { font-size: 0.75rem; color: var(--muted); }
+
+    /* ── MAIN LAYOUT ── */
+    .main { padding-top: 56px; padding-bottom: 64px; }
+
+    /* ── TABS ── */
+    .tabs {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(10,14,19,0.97);
+      border-top: 1px solid var(--border);
+      display: flex;
+    }
+    .tab-btn {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 3px; padding: 0.6rem 0;
+      background: none; border: none; color: var(--muted);
+      font-size: 0.65rem; font-weight: 500; cursor: pointer;
+      transition: color 0.2s;
+    }
+    .tab-btn.active { color: var(--orange); }
+    .tab-icon { font-size: 1.2rem; }
+
+    /* ── PANELS ── */
+    .panel { display: none; padding: 1rem; }
+    .panel.active { display: block; }
+
+    /* ── SECTION HEADER ── */
+    .section-title {
+      font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--muted);
+      margin-bottom: 0.75rem; margin-top: 1.25rem;
+    }
+    .section-title:first-child { margin-top: 0; }
+
+    /* ── STAT CARDS ── */
+    .stats-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;
+      margin-bottom: 0.25rem;
+    }
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 1rem;
+    }
+    .stat-value {
+      font-size: 1.8rem; font-weight: 800; line-height: 1;
+      margin-bottom: 0.2rem;
+    }
+    .stat-label { font-size: 0.72rem; color: var(--muted); font-weight: 500; }
+    .stat-card.orange .stat-value { color: var(--orange); }
+    .stat-card.green .stat-value  { color: var(--green); }
+    .stat-card.blue .stat-value   { color: var(--blue); }
+    .stat-card.yellow .stat-value { color: var(--yellow); }
+
+    /* ── LIST CARDS ── */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 1rem; margin-bottom: 0.75rem;
+    }
+    .card-row { display: flex; justify-content: space-between; align-items: flex-start; }
+    .card-name { font-size: 0.95rem; font-weight: 700; margin-bottom: 0.2rem; }
+    .card-sub  { font-size: 0.78rem; color: var(--muted); }
+    .badge {
+      display: inline-block; padding: 0.2rem 0.6rem;
+      border-radius: 20px; font-size: 0.68rem; font-weight: 600;
+      white-space: nowrap;
+    }
+    .badge-green  { background: rgba(16,185,129,0.15); color: var(--green); }
+    .badge-orange { background: rgba(255,107,53,0.15);  color: var(--orange); }
+    .badge-blue   { background: rgba(59,130,246,0.15);  color: var(--blue); }
+    .badge-muted  { background: var(--surface2);        color: var(--muted); }
+
+    /* ── SCHENGEN BAR ── */
+    .schengen-bar-wrap {
+      margin-top: 0.6rem;
+    }
+    .schengen-bar-labels {
+      display: flex; justify-content: space-between;
+      font-size: 0.68rem; color: var(--muted); margin-bottom: 0.3rem;
+    }
+    .schengen-bar-track {
+      height: 6px; background: var(--border); border-radius: 3px; overflow: hidden;
+    }
+    .schengen-bar-fill {
+      height: 100%; border-radius: 3px;
+      background: linear-gradient(90deg, var(--orange), var(--orange2));
+      transition: width 0.6s ease;
+    }
+    .schengen-bar-fill.safe   { background: linear-gradient(90deg,#10b981,#34d399); }
+    .schengen-bar-fill.warn   { background: linear-gradient(90deg,#f59e0b,#fbbf24); }
+    .schengen-bar-fill.danger { background: linear-gradient(90deg,#ef4444,#f87171); }
+
+    /* ── EMPTY STATE ── */
+    .empty {
+      text-align: center; padding: 2.5rem 1rem; color: var(--muted);
+    }
+    .empty-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+    .empty-title { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--text); }
+    .empty-sub { font-size: 0.8rem; }
+
+    /* ── LOADING ── */
+    .loading { text-align: center; padding: 2rem; color: var(--muted); font-size: 0.85rem; }
+
+    /* ── DIVIDER ── */
+    .divider { height: 1px; background: var(--border); margin: 1rem 0; }
+
+    /* ── REFRESH BTN ── */
+    .refresh-btn {
+      display: flex; align-items: center; gap: 0.4rem;
+      background: var(--surface2); border: 1px solid var(--border);
+      color: var(--muted); font-size: 0.75rem; font-weight: 500;
+      padding: 0.4rem 0.9rem; border-radius: 6px; cursor: pointer;
+      transition: all 0.2s;
+    }
+    .refresh-btn:active { background: var(--border); color: var(--text); }
+    .topbar-right { gap: 0.75rem; }
+  </style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-logo">Mosto<span>Dispatch</span></div>
+  <div class="topbar-right">
+    <div class="status-dot" id="statusDot"></div>
+    <span class="status-label" id="statusLabel">Connecting...</span>
+    <button class="refresh-btn" onclick="loadAll()">↻ Refresh</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- ── OVERVIEW ── -->
+  <div class="panel active" id="panel-overview">
+    <p class="section-title">Fleet Overview</p>
+    <div class="stats-grid">
+      <div class="stat-card orange">
+        <div class="stat-value" id="stat-companies">—</div>
+        <div class="stat-label">Companies</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-value" id="stat-drivers">—</div>
+        <div class="stat-label">Drivers</div>
+      </div>
+      <div class="stat-card blue">
+        <div class="stat-value" id="stat-loads">—</div>
+        <div class="stat-label">Active Loads</div>
+      </div>
+      <div class="stat-card yellow">
+        <div class="stat-value" id="stat-crossings">—</div>
+        <div class="stat-label">Schengen Logs</div>
+      </div>
+    </div>
+
+    <p class="section-title" style="margin-top:1.25rem">Recent Activity</p>
+    <div id="overview-activity">
+      <div class="loading">Loading activity...</div>
+    </div>
+  </div>
+
+  <!-- ── COMPANIES ── -->
+  <div class="panel" id="panel-companies">
+    <p class="section-title">Fleet Companies</p>
+    <div id="companies-list">
+      <div class="loading">Loading companies...</div>
+    </div>
+  </div>
+
+  <!-- ── DRIVERS ── -->
+  <div class="panel" id="panel-drivers">
+    <p class="section-title">Drivers</p>
+    <div id="drivers-list">
+      <div class="loading">Loading drivers...</div>
+    </div>
+  </div>
+
+  <!-- ── SCHENGEN ── -->
+  <div class="panel" id="panel-schengen">
+    <p class="section-title">Schengen Crossing Logs</p>
+    <div id="schengen-list">
+      <div class="loading">Loading logs...</div>
+    </div>
+  </div>
+
+  <!-- ── LOADS ── -->
+  <div class="panel" id="panel-loads">
+    <p class="section-title">Active Loads</p>
+    <div id="loads-list">
+      <div class="loading">Loading loads...</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- BOTTOM TABS -->
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('overview', this)">
+    <span class="tab-icon">📊</span>Overview
+  </button>
+  <button class="tab-btn" onclick="switchTab('companies', this)">
+    <span class="tab-icon">🏢</span>Companies
+  </button>
+  <button class="tab-btn" onclick="switchTab('drivers', this)">
+    <span class="tab-icon">🚛</span>Drivers
+  </button>
+  <button class="tab-btn" onclick="switchTab('schengen', this)">
+    <span class="tab-icon">🛂</span>Schengen
+  </button>
+  <button class="tab-btn" onclick="switchTab('loads', this)">
+    <span class="tab-icon">📦</span>Loads
+  </button>
+</div>
+
+<script>
+  const API = 'https://mostodispatch-production.up.railway.app';
+
+  // ── TAB SWITCH ──
+  function switchTab(name, btn) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  // ── FETCH ──
+  async function fetchData(path) {
+    const r = await fetch(API + path);
+    return r.json();
+  }
+
+  // ── SCHENGEN DAYS CALC ──
+  function schengenDaysUsed(logs) {
+    const now = new Date();
+    const cutoff = new Date(now - 90 * 86400000);
+    let days = 0;
+    logs.forEach(log => {
+      const entry = new Date(log.entry_date);
+      const exit  = log.exit_date ? new Date(log.exit_date) : now;
+      if (exit >= cutoff) {
+        const from = entry < cutoff ? cutoff : entry;
+        days += Math.ceil((exit - from) / 86400000);
+      }
+    });
+    return Math.min(days, 90);
+  }
+
+  // ── FORMAT DATE ──
+  function fmtDate(d) {
+    if (!d) return '—';
+    return new Date(d).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+  }
+
+  // ── TIER BADGE ──
+  function tierBadge(tier) {
+    const map = { basic:'badge-muted', professional:'badge-orange', enterprise:'badge-blue' };
+    return `<span class="badge ${map[tier]||'badge-muted'}">${(tier||'—').toUpperCase()}</span>`;
+  }
+
+  // ── RENDER COMPANIES ──
+  function renderCompanies(companies) {
+    const el = document.getElementById('companies-list');
+    if (!companies.length) {
+      el.innerHTML = `<div class="empty"><div class="empty-icon">🏢</div><div class="empty-title">No companies yet</div><div class="empty-sub">Add your first fleet company to get started.</div></div>`;
+      return;
+    }
+    el.innerHTML = companies.map(c => `
+      <div class="card">
+        <div class="card-row">
+          <div>
+            <div class="card-name">${c.name}</div>
+            <div class="card-sub">${c.country || '—'} · ${c.truck_count || 0} trucks</div>
+          </div>
+          ${tierBadge(c.tier)}
+        </div>
+        <div class="divider"></div>
+        <div class="card-row" style="flex-wrap:wrap;gap:0.5rem">
+          <span class="card-sub">MRR: <strong style="color:var(--green)">€${(c.monthly_revenue||0).toFixed(0)}</strong></span>
+          <span class="card-sub">Status: <strong style="color:var(--orange)">${c.sub_status||'—'}</strong></span>
+          <span class="card-sub">Since: ${fmtDate(c.created_at)}</span>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // ── RENDER DRIVERS ──
+  function renderDrivers(drivers) {
+    const el = document.getElementById('drivers-list');
+    if (!drivers.length) {
+      el.innerHTML = `<div class="empty"><div class="empty-icon">🚛</div><div class="empty-title">No drivers yet</div><div class="empty-sub">Drivers will appear here once added to a company.</div></div>`;
+      return;
+    }
+    el.innerHTML = drivers.map(d => `
+      <div class="card">
+        <div class="card-row">
+          <div>
+            <div class="card-name">${d.name}</div>
+            <div class="card-sub">${d.flag ? d.flag + ' · ' : ''}${d.phone || '—'}</div>
+          </div>
+          <span class="badge badge-green">Active</span>
+        </div>
+        ${d.license_expiry ? `
+        <div class="divider"></div>
+        <div class="card-sub">License expires: ${fmtDate(d.license_expiry)}</div>` : ''}
+      </div>
+    `).join('');
+  }
+
+  // ── RENDER SCHENGEN ──
+  function renderSchengen(logs) {
+    const el = document.getElementById('schengen-list');
+    if (!logs.length) {
+      el.innerHTML = `<div class="empty"><div class="empty-icon">🛂</div><div class="empty-title">No crossings logged yet</div><div class="empty-sub">Schengen crossing history will accumulate here automatically.</div></div>`;
+      return;
+    }
+
+    // Group by driver
+    const byDriver = {};
+    logs.forEach(l => {
+      const key = l.driver_id;
+      if (!byDriver[key]) byDriver[key] = [];
+      byDriver[key].push(l);
+    });
+
+    el.innerHTML = Object.entries(byDriver).map(([driverId, driverLogs]) => {
+      const daysUsed = schengenDaysUsed(driverLogs);
+      const daysLeft = 90 - daysUsed;
+      const pct = Math.round((daysUsed / 90) * 100);
+      const fillClass = pct >= 80 ? 'danger' : pct >= 60 ? 'warn' : 'safe';
+
+      const logsHtml = driverLogs.map(l => `
+        <div class="card-row" style="margin-top:0.6rem">
+          <div>
+            <div class="card-sub" style="color:var(--text);font-weight:600">${l.country}</div>
+            <div class="card-sub">${fmtDate(l.entry_date)} → ${fmtDate(l.exit_date)}</div>
+          </div>
+          <span class="badge badge-muted">${l.notes ? l.notes.substring(0,20)+'…' : 'No notes'}</span>
+        </div>
+      `).join('');
+
+      return `
+        <div class="card">
+          <div class="card-row">
+            <div>
+              <div class="card-name">Driver ID …${driverId.slice(-6)}</div>
+              <div class="card-sub">90-day Schengen window</div>
+            </div>
+            <span class="badge ${daysLeft < 10 ? 'badge-orange' : 'badge-green'}">${daysLeft}d left</span>
+          </div>
+          <div class="schengen-bar-wrap">
+            <div class="schengen-bar-labels">
+              <span>${daysUsed} days used</span>
+              <span>${daysLeft} days remaining</span>
+            </div>
+            <div class="schengen-bar-track">
+              <div class="schengen-bar-fill ${fillClass}" style="width:${pct}%"></div>
+            </div>
+          </div>
+          ${logsHtml}
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ── RENDER LOADS ──
+  function renderLoads(loads) {
+    const el = document.getElementById('loads-list');
+    if (!loads.length) {
+      el.innerHTML = `<div class="empty"><div class="empty-icon">📦</div><div class="empty-title">No active loads</div><div class="empty-sub">Loads assigned to drivers will appear here.</div></div>`;
+      return;
+    }
+    el.innerHTML = loads.map(l => `
+      <div class="card">
+        <div class="card-row">
+          <div>
+            <div class="card-name">${l.cargoType || 'Load'} #${l.loadNumber || l.id?.slice(-6)}</div>
+            <div class="card-sub">${l.pickupAddress || '—'} → ${l.deliveryAddress || '—'}</div>
+          </div>
+          <span class="badge badge-orange">${l.status || 'pending'}</span>
+        </div>
+        ${l.clientName ? `<div class="divider"></div><div class="card-sub">Client: <strong>${l.clientName}</strong></div>` : ''}
+      </div>
+    `).join('');
+  }
+
+  // ── RENDER OVERVIEW ──
+  function renderOverview(companies, drivers, loads, schengenLogs) {
+    document.getElementById('stat-companies').textContent = companies.length;
+    document.getElementById('stat-drivers').textContent   = drivers.length;
+    document.getElementById('stat-loads').textContent     = loads.length;
+    document.getElementById('stat-crossings').textContent = schengenLogs.length;
+
+    const actEl = document.getElementById('overview-activity');
+    const items = [
+      ...companies.slice(0,2).map(c => ({
+        icon: '🏢', title: c.name, sub: `${c.tier} · ${c.truck_count||0} trucks`, time: fmtDate(c.created_at)
+      })),
+      ...schengenLogs.slice(0,3).map(l => ({
+        icon: '🛂', title: `Schengen — ${l.country}`, sub: l.notes || 'Border crossing logged', time: fmtDate(l.entry_date)
+      })),
+      ...drivers.slice(0,2).map(d => ({
+        icon: '🚛', title: d.name, sub: d.phone || 'Driver added', time: fmtDate(d.created_at)
+      })),
+    ];
+
+    if (!items.length) {
+      actEl.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><div class="empty-title">No activity yet</div><div class="empty-sub">Activity will appear here as your fleet data grows.</div></div>`;
+      return;
+    }
+
+    actEl.innerHTML = items.map(i => `
+      <div class="card" style="display:flex;gap:0.75rem;align-items:flex-start">
+        <div style="font-size:1.4rem;margin-top:0.1rem">${i.icon}</div>
+        <div style="flex:1">
+          <div class="card-name" style="font-size:0.88rem">${i.title}</div>
+          <div class="card-sub">${i.sub}</div>
+        </div>
+        <div style="font-size:0.7rem;color:var(--muted);white-space:nowrap">${i.time}</div>
+      </div>
+    `).join('');
+  }
+
+  // ── SET STATUS ──
+  function setStatus(ok) {
+    const dot = document.getElementById('statusDot');
+    const lbl = document.getElementById('statusLabel');
+    dot.style.background = ok ? 'var(--green)' : 'var(--red)';
+    lbl.textContent = ok ? 'Live' : 'Offline';
+  }
+
+  // ── LOAD ALL ──
+  async function loadAll() {
+    try {
+      const [cd, dd, ld, sd] = await Promise.all([
+        fetchData('/api/companies'),
+        fetchData('/api/drivers'),
+        fetchData('/api/loads'),
+        fetchData('/api/schengen-logs'),
+      ]);
+
+      const companies    = cd.companies    || [];
+      const drivers      = dd.drivers      || [];
+      const loads        = ld.loads        || [];
+      const schengenLogs = sd.logs         || [];
+
+      renderOverview(companies, drivers, loads, schengenLogs);
+      renderCompanies(companies);
+      renderDrivers(drivers);
+      renderSchengen(schengenLogs);
+      renderLoads(loads);
+      setStatus(true);
+    } catch (err) {
+      setStatus(false);
+      console.error(err);
+    }
+  }
+
+  // ── INIT ──
+  loadAll();
+  // Auto-refresh every 60 seconds
+  setInterval(loadAll, 60000);
+</script>
+</body>
+</html>
