@@ -1,12 +1,5 @@
 {
   "version": 2,
-  "name": "mosto-logistics",
-  "builds": [
-    {
-      "src": "*.html",
-      "use": "@vercel/static"
-    }
-  ],
   "routes": [
     {
       "src": "/dashboard",
